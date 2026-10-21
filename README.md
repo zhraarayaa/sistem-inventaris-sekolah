@@ -58,12 +58,12 @@ Ikuti langkah-langkah di bawah ini secara berurutan untuk memasang dan menjalank
 6. **Konfigurasi Database:**
    Buka file `.env` menggunakan teks editor (seperti VS Code), lalu sesuaikan kredensial koneksi database MySQL Anda:
    ```env
-   DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DB_DATABASE=sistem_inventaris
-   DB_USERNAME=root
-   DB_PASSWORD=
+      DB_CONNECTION=mysql
+      DB_HOST=127.0.0.1
+      DB_PORT=3306
+      DB_DATABASE=db_sistem_inventaris
+      DB_USERNAME=root
+      DB_PASSWORD=
    ```
 
 7. **Jalankan Migrasi Database dan Seeder:**
@@ -96,13 +96,13 @@ Berikut adalah informasi akun default hasil *seeder* yang dapat langsung digunak
 ### 1. Akun Administrator (Admin)
 Digunakan untuk mengelola data master (barang, kategori, pengguna), menyetujui peminjaman, serta memantau laporan keseluruhan.
 - **Nama:** Zahra Araya (Admin)
-- **Email:** `admin@sistem.com` *(atau periksa file seeder Anda)*
+- **Email:** `admin@sekolah.com`
 - **Password:** `password`
 
 ### 2. Akun Pengguna / Siswa (User)
 Digunakan untuk melihat katalog barang inventaris yang tersedia dan mengajukan permohonan peminjaman.
-- **Nama:** Maya (User)
-- **Email:** `user@sistem.com` *(atau periksa file seeder Anda)*
+- **Nama:** Aya (User)
+- **Email:** `aya@siswa.com` 
 - **Password:** `password`
 
 ---
@@ -114,4 +114,4 @@ Digunakan untuk melihat katalog barang inventaris yang tersedia dan mengajukan p
 - `loans`: Mencatat riwayat dan status alur peminjaman barang (`pending`, `approved`, `returned`, dll).
 
 ---
-*© 2026 Sistem Inventaris Sekolah — Dikembangkan untuk Penilaian Gamelab Indonesia.*
+*© 2026 Sistem Inventaris Sekolah — Gamelab Indonesia.*
