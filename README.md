@@ -1,59 +1,117 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🏫 Sistem Inventaris Sekolah
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi web Sistem Inventaris Sekolah berbasis **Laravel (Breeze stack)** yang dikembangkan untuk memenuhi standar profesional, teknis, dan fungsional dari **Gamelab Indonesia**. Sistem ini dirancang untuk mendigitalisasi proses pengelolaan aset sekolah serta manajemen alur peminjaman barang oleh siswa maupun guru.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🚀 Fitur Utama & Fungsionalitas Sistem
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Autentikasi Berbasis Peran (Role-Based Access Control):** Pemisahan hak akses keamanan secara ketat antara **Admin** dan **User (Siswa/Guru)**.
+- **Manajemen Data Komprehensif:** Modul CRUD lengkap untuk pengelolaan **Barang**, **Kategori**, dan **Pengguna**, dilengkapi dengan fitur pencarian instan (*search filter*) dan *pagination*.
+- **Alur Peminjaman Dinamis:** Pengguna dapat mengajukan peminjaman barang, sementara Admin memiliki panel khusus untuk melakukan *Approval* (Persetujuan) serta pencatatan pengembalian (*Return*).
+- **Antarmuka Modern (UI/UX):** Dibangun menggunakan **Tailwind CSS** dengan tata letak responsif, kartu statistik *real-time*, dan transisi visual yang elegan.
+- **Pencatatan Audit & Kepatuhan Git:** Struktur database terstandarisasi ERD dan penerapan prosedur *commit* berkala di GitHub.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🛠️ Prasyarat Sistem (Prerequisites)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Sebelum menjalankan aplikasi ini di komputer lokal, pastikan perangkat Anda telah terinstal perangkat lunak berikut:
+- **PHP** (Minimal versi 8.2 atau sesuai standar Laravel 11)
+- **Composer** (Manajer dependensi PHP)
+- **Node.js & NPM** (Untuk kompilasi aset frontend Vite & Tailwind CSS)
+- **MySQL / MariaDB** (Sebagai sistem basis data)
+- **Git** (Untuk manajemen repositori)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## ⚙️ Panduan Instalasi (Installation Guide)
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Ikuti langkah-langkah di bawah ini secara berurutan untuk memasang dan menjalankan proyek pada lingkungan lokal Anda:
 
-### Premium Partners
+1. **Clone repository ini ke direktori lokal Anda:**
+   ```bash
+   git clone https://github.com/zhraarayaa/sistem-inventaris-sekolah.git
+   cd sistem-inventaris-sekolah
+   ```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+2. **Instal dependensi backend menggunakan Composer:**
+   ```bash
+   composer install
+   ```
 
-## Contributing
+3. **Instal dependensi frontend menggunakan NPM:**
+   ```bash
+   npm install
+   ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+4. **Salin file konfigurasi lingkungan (.env):**
+   ```bash
+   cp .env.example .env
+   ```
 
-## Code of Conduct
+5. **Generate kunci enkripsi aplikasi (Application Key):**
+   ```bash
+   php artisan key:generate
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+6. **Konfigurasi Database:**
+   Buka file `.env` menggunakan teks editor (seperti VS Code), lalu sesuaikan kredensial koneksi database MySQL Anda:
+   ```env
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=sistem_inventaris
+   DB_USERNAME=root
+   DB_PASSWORD=
+   ```
 
-## Security Vulnerabilities
+7. **Jalankan Migrasi Database dan Seeder:**
+   Perintah ini akan membuat tabel-tabel basis data yang diperlukan sekaligus mengisi data awal beserta kredensial akun bawaan:
+   ```bash
+   php artisan migrate --seed
+   ```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+8. **Jalankan Server Lokal (Development Servers):**
+   Buka **dua jendela terminal terpisah** di dalam direktori proyek Anda:
+   - **Terminal 1 (Menjalankan Backend Laravel):**
+     ```bash
+     php artisan serve
+     ```
+   - **Terminal 2 (Menjalankan Kompilasi Aset Vite & Tailwind CSS):**
+     ```bash
+     npm run dev
+     ```
 
-## License
+9. **Akses Aplikasi:**
+   Buka peramban web (*browser*) Anda dan kunjungi tautan berikut:  
+   `http://127.0.0.1:8000`
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+## 🔑 Kredensial Akun (Seeder Credentials)
+
+Berikut adalah informasi akun default hasil *seeder* yang dapat langsung digunakan untuk masuk ke dalam sistem berdasarkan peran masing-masing:
+
+### 1. Akun Administrator (Admin)
+Digunakan untuk mengelola data master (barang, kategori, pengguna), menyetujui peminjaman, serta memantau laporan keseluruhan.
+- **Nama:** Zahra Araya (Admin)
+- **Email:** `admin@sistem.com` *(atau periksa file seeder Anda)*
+- **Password:** `password`
+
+### 2. Akun Pengguna / Siswa (User)
+Digunakan untuk melihat katalog barang inventaris yang tersedia dan mengajukan permohonan peminjaman.
+- **Nama:** Maya (User)
+- **Email:** `user@sistem.com` *(atau periksa file seeder Anda)*
+- **Password:** `password`
+
+---
+
+## 📁 Struktur Basis Data Utama (ERD Compliance)
+- `users`: Menyimpan informasi akun pengguna dan kolom `role` (admin/user).
+- `categories`: Mengelompokkan jenis barang inventaris sekolah.
+- `items`: Menyimpan rincian aset barang, stok, kode, dan kondisi fisik.
+- `loans`: Mencatat riwayat dan status alur peminjaman barang (`pending`, `approved`, `returned`, dll).
+
+---
+*© 2026 Sistem Inventaris Sekolah — Dikembangkan untuk Penilaian Gamelab Indonesia.*
