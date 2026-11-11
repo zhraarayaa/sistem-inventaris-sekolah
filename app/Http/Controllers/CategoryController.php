@@ -7,11 +7,26 @@ use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    // Menampilkan daftar kategori
-    public function index()
+    // Menampilkan daftar kategori dengan pencarian, filter perPage, & pagination
+    public function index(Request $request)
     {
-        $categories = Category::latest()->paginate(10);
-        return view('admin.categories.index', compact('categories'));
+        $search = $request->input('search');
+        $perPage = $request->input('perPage', 10); // Default 10 data per halaman
+
+        $query = Category::withCount('items') // Menghitung jumlah barang per kategori
+            ->when($search, function ($q, $search) {
+                return $q->where('name', 'like', "%{$search}%");
+            })
+            ->latest();
+
+        // Logika untuk menangani pilihan jumlah data (termasuk opsi 'all')
+        if ($perPage === 'all') {
+            $categories = $query->paginate($query->count() ?: 1)->withQueryString();
+        } else {
+            $categories = $query->paginate((int) $perPage)->withQueryString();
+        }
+
+        return view('admin.categories.index', compact('categories', 'search', 'perPage'));
     }
 
     // Menampilkan form tambah kategori

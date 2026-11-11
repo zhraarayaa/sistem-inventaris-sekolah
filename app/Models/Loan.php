@@ -19,6 +19,7 @@ class Loan extends Model
         'loan_date',
         'due_date',
         'status',
+        'rejection_reason', // <-- Ditambahkan agar data alasan lolos dari Mass Assignment Laravel
     ];
 
     // Relasi: Loan dilakukan oleh satu User

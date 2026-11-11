@@ -1,85 +1,296 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Manajemen Data Barang') }}
-        </h2>
-    </x-slot>
+    <div x-data="{ 
+        showCreateModal: false,
+        showDeleteModal: false, 
+        deleteUrl: '', 
+        itemName: '',
+        showEditModal: false,
+        editItem: { id: '', name: '', code: '', category_id: '', stock: '', condition: '' }
+    }" class="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                
-                @if(session('success'))
-                    <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
-                        {{ session('success') }}
-                    </div>
-                @endif
-
-                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                    <a href="{{ route('admin.items.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shadow-sm transition">
-                        + Tambah Barang
-                    </a>
-
-                    <!-- Form Pencarian -->
-                    <form action="{{ route('admin.items.index') }}" method="GET" class="flex gap-2 w-full md:w-auto">
-                        <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Cari nama atau kode..." class="shadow-sm appearance-none border border-gray-300 rounded-xl py-2 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 w-full md:w-64">
-                        <button type="submit" class="bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 px-4 rounded-xl shadow-sm transition">Cari</button>
-                        @if(!empty($search))
-                            <a href="{{ route('admin.items.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-xl transition flex items-center justify-center">Reset</a>
-                        @endif
-                    </form>
+        <!-- Card Utama -->
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-2xl border border-gray-100 p-6 space-y-6">
+            
+            <!-- Bar Atas: Subtitle & Tombol Tambah (Diubah jadi trigger pop-up modal) -->
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="text-sm font-semibold text-blue-600">
+                    Daftar Barang Inventaris
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead>
+                <button @click="showCreateModal = true" type="button" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow transition text-xs flex items-center gap-2">
+                    + Tambah
+                </button>
+            </div>
+
+            <!-- BAGIAN FILTER & LIVE SEARCH -->
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-gray-600">
+                <!-- Dropdown Tampilkan Data -->
+                <form method="GET" action="{{ route('admin.items.index') }}" id="perPageForm" class="flex items-center gap-2">
+                    <span>Tampilkan</span>
+                    <select name="perPage" onchange="document.getElementById('perPageForm').submit()" class="border-gray-200 rounded-lg text-xs px-3 py-1.5 focus:ring-blue-500 focus:border-blue-500 bg-gray-50/50">
+                        <option value="5" {{ request('perPage') == 5 ? 'selected' : '' }}>5</option>
+                        <option value="10" {{ request('perPage', 10) == 10 ? 'selected' : '' }}>10</option>
+                        <option value="25" {{ request('perPage') == 25 ? 'selected' : '' }}>25</option>
+                        <option value="50" {{ request('perPage') == 50 ? 'selected' : '' }}>50</option>
+                        <option value="all" {{ request('perPage') == 'all' ? 'selected' : '' }}>Semua</option>
+                    </select>
+                    <span>data</span>
+                    <input type="hidden" name="search" value="{{ request('search') }}">
+                </form>
+
+                <!-- Live Search Bar -->
+                <div class="w-full sm:w-auto flex items-center gap-2">
+                    <span>Cari:</span>
+                    <input type="text" id="liveSearchInput" value="{{ request('search') }}" placeholder="" class="w-full sm:w-64 px-3 py-1.5 rounded-lg border border-gray-200 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-gray-50/50">
+                </div>
+            </div>
+
+            <!-- WRAPPER KONTEN TABEL & PAGINATION -->
+            <div id="tableContentWrapper" class="space-y-6">
+                <!-- TABEL DATA -->
+                <div class="overflow-x-auto rounded-xl border border-gray-100">
+                    <table class="min-w-full divide-y divide-gray-200 text-left text-xs">
+                        <thead class="bg-gray-50/70 text-gray-600 uppercase font-semibold tracking-wider">
                             <tr>
-                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
-                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode</th>
-                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
-                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
-                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
-                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kondisi</th>
-                                <th class="px-6 py-3 bg-gray-50 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                <th class="px-6 py-3.5">Kode</th>
+                                <th class="px-6 py-3.5">Nama</th>
+                                <th class="px-6 py-3.5">Kategori</th>
+                                <th class="px-6 py-3.5">Stok</th>
+                                <th class="px-6 py-3.5">Kondisi</th>
+                                <th class="px-6 py-3.5 text-center">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @forelse($items as $index => $item)
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $items->firstItem() + $index }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-700">{{ $item->code }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-800">{{ $item->name }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $item->category->name ?? '-' }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $item->stock }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                            {{ $item->condition == 'baik' ? 'bg-green-100 text-green-800' : ($item->condition == 'rusak ringan' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
-                                            {{ ucfirst($item->condition) }}
-                                        </span>
+                        <tbody class="divide-y divide-gray-100 bg-white text-gray-700">
+                            @forelse($items ?? [] as $index => $item)
+                                <tr class="hover:bg-blue-50/30 transition">
+                                    <td class="px-6 py-4 font-medium text-gray-900">
+                                        {{ $item->code }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                        <a href="{{ route('admin.items.edit', $item->id) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
-                                        <form action="{{ route('admin.items.destroy', $item->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Yakin ingin menghapus barang ini?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-rose-600 hover:text-rose-900">Hapus</button>
-                                        </form>
+                                    <td class="px-6 py-4 font-bold text-gray-800">
+                                        {{ $item->name }}
+                                    </td>
+                                    <td class="px-6 py-4 text-gray-600">
+                                        {{ $item->category->name ?? '-' }}
+                                    </td>
+                                    <td class="px-6 py-4 font-bold text-gray-700">
+                                        {{ $item->stock }}
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        @if(strtolower($item->condition) == 'baik')
+                                            <span class="px-2.5 py-1 rounded text-[10px] font-bold bg-emerald-500 text-white uppercase">baik</span>
+                                        @elseif(strtolower($item->condition) == 'rusak ringan')
+                                            <span class="px-2.5 py-1 rounded text-[10px] font-bold bg-amber-500 text-white uppercase">rusak ringan</span>
+                                        @else
+                                            <span class="px-2.5 py-1 rounded text-[10px] font-bold bg-rose-500 text-white uppercase">rusak berat</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 text-center space-x-1">
+                                        <!-- Tombol Edit Pop-up -->
+                                        <button @click="showEditModal = true; editItem = { 
+                                            id: '{{ $item->id }}', 
+                                            name: '{{ $item->name }}', 
+                                            code: '{{ $item->code }}', 
+                                            category_id: '{{ $item->category_id }}', 
+                                            stock: '{{ $item->stock }}', 
+                                            condition: '{{ $item->condition }}' 
+                                        }" class="inline-flex items-center justify-center p-1.5 bg-amber-400 hover:bg-amber-500 text-white rounded shadow transition" title="Edit">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                        </button>
+
+                                        <!-- Tombol Hapus Pop-up -->
+                                        <button @click="showDeleteModal = true; deleteUrl = '{{ route('admin.items.destroy', $item->id) }}'; itemName = '{{ $item->name }}'" class="inline-flex items-center justify-center p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded shadow transition" title="Hapus">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-6 py-8 text-center text-gray-500 text-sm">Belum ada data barang yang ditemukan.</td>
+                                    <td colspan="6" class="px-6 py-8 text-center text-gray-400">
+                                        Belum ada data barang.
+                                    </td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
 
-                <div class="mt-4">
-                    {{ $items->withQueryString()->links() }}
+                <!-- BAGIAN BAWAH: Render Paginator & Informasi Total Data -->
+                <div class="flex flex-col sm:flex-row items-center justify-between pt-2 text-xs text-gray-500 gap-4">
+                    <div>
+                        @if(isset($items) && $items->total() > 0)
+                            Menampilkan {{ $items->firstItem() }} - {{ $items->lastItem() }} dari {{ $items->total() }} data
+                        @else
+                            Menampilkan 0 data
+                        @endif
+                    </div>
+
+                    <div>
+                        @if(isset($items) && method_exists($items, 'links'))
+                            {{ $items->appends(['perPage' => request('perPage'), 'search' => request('search')])->links() }}
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= MODAL POP-UP TAMBAH BARANG ================= -->
+        <div x-cloak x-show="showCreateModal" class="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
+            <div @click.away="showCreateModal = false" class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl text-left">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="text-base font-bold text-gray-800">Tambah Barang</h3>
+                    <button @click="showCreateModal = false" type="button" class="text-gray-400 hover:text-gray-600 font-bold text-lg">&times;</button>
                 </div>
 
+                <form action="{{ route('admin.items.store') }}" method="POST" class="space-y-4 text-xs">
+                    @csrf
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1">Kategori Barang <span class="text-red-500">*</span></label>
+                        <select name="category_id" required class="w-full border-gray-200 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">-- Pilih Kategori --</option>
+                            @foreach($categories ?? [] as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1">Nama Barang <span class="text-red-500">*</span></label>
+                        <input type="text" name="name" autofocus placeholder="Contoh: Mikroskop Binokuler" required class="w-full border-gray-200 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1">Kode / SKU Barang <span class="text-red-500">*</span></label>
+                        <input type="text" name="code" placeholder="Contoh: LAB-001" required class="w-full border-gray-200 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1">Jumlah Stok <span class="text-red-500">*</span></label>
+                        <input type="number" name="stock" min="0" placeholder="0" required class="w-full border-gray-200 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1">Kondisi Barang <span class="text-red-500">*</span></label>
+                        <select name="condition" required class="w-full border-gray-200 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="baik">Baik</option>
+                            <option value="rusak ringan">Rusak Ringan</option>
+                            <option value="rusak berat">Rusak Berat</option>
+                        </select>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-4">
+                        <button @click="showCreateModal = false" type="button" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-bold rounded-xl transition">
+                            Batal
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition">
+                            Simpan
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
+
+        <!-- ================= MODAL POP-UP KONFIRMASI HAPUS ================= -->
+        <div x-cloak x-show="showDeleteModal" class="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
+            <div @click.away="showDeleteModal = false" class="bg-white rounded-2xl max-w-md w-full p-6 text-center space-y-4 shadow-xl">
+                <div class="mx-auto w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-500 text-2xl font-bold">
+                    !
+                </div>
+                <h3 class="text-lg font-bold text-gray-800">Hapus Barang?</h3>
+                <p class="text-xs text-gray-600">
+                    Barang "<span class="font-semibold text-gray-800" x-text="itemName"></span>" akan dihapus permanen.
+                </p>
+                <div class="flex justify-center gap-3 pt-2">
+                    <button @click="showDeleteModal = false" type="button" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white text-xs font-bold rounded-xl transition">
+                        Batal
+                    </button>
+                    <form :action="deleteUrl" method="POST" class="inline-block">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition">
+                            Ya, Hapus!
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MODAL POP-UP EDIT BARANG ================= -->
+        <div x-cloak x-show="showEditModal" class="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
+            <div @click.away="showEditModal = false" class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl text-left">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 class="text-base font-bold text-gray-800">Edit Barang</h3>
+                    <button @click="showEditModal = false" class="text-gray-400 hover:text-gray-600 font-bold text-lg">&times;</button>
+                </div>
+
+                <form :action="'/admin/items/' + editItem.id" method="POST" class="space-y-4 text-xs">
+                    @csrf
+                    @method('PUT')
+
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1">Nama Barang *</label>
+                        <input type="text" name="name" x-model="editItem.name" required class="w-full border-gray-200 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1">Kode / SKU *</label>
+                        <input type="text" name="code" x-model="editItem.code" required class="w-full border-gray-200 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1">Stok *</label>
+                        <input type="number" name="stock" x-model="editItem.stock" required class="w-full border-gray-200 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1">Kondisi *</label>
+                        <select name="condition" x-model="editItem.condition" class="w-full border-gray-200 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="baik">Baik</option>
+                            <option value="rusak ringan">Rusak Ringan</option>
+                            <option value="rusak berat">Rusak Berat</option>
+                        </select>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-4">
+                        <button @click="showEditModal = false" type="button" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-bold rounded-xl transition">
+                            Batal
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition">
+                            Simpan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
     </div>
+
+    <!-- Script Live Search Barang -->
+    <script>
+        document.getElementById('liveSearchInput').addEventListener('input', function() {
+            let searchValue = this.value;
+            let perPage = document.querySelector('select[name="perPage"]').value;
+            
+            let url = new URL(window.location.href);
+            url.searchParams.set('search', searchValue);
+            url.searchParams.set('perPage', perPage);
+            url.searchParams.set('page', 1);
+
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                let parser = new DOMParser();
+                let doc = parser.parseFromString(html, 'text/html');
+                
+                document.getElementById('tableContentWrapper').innerHTML = doc.getElementById('tableContentWrapper').innerHTML;
+                
+                window.history.pushState({}, '', url);
+            });
+        });
+    </script>
 </x-app-layout>

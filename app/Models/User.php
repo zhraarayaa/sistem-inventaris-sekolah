@@ -35,7 +35,7 @@ class User extends Authenticatable
     // Relasi: Satu User bisa memiliki banyak Loans (Peminjaman)
     public function loans(): HasMany
     {
-        return $this->hasMany(Loan::log ?? Loan::class);
+        return $this->hasMany(Loan::class);
     }
 
     // Relasi: Satu User bisa memiliki banyak ActivityLogs

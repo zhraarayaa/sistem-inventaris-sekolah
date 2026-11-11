@@ -11,17 +11,67 @@ use Carbon\Carbon;
 
 class LoanController extends Controller
 {
-    // Menampilkan daftar peminjaman (Admin melihat semua, User melihat miliknya sendiri)
-    public function index()
+    // Menampilkan daftar peminjaman dengan filter status tab, search, perPage, & pagination
+    public function index(Request $request)
     {
         $user = auth()->user();
+        $search = $request->input('search');
+        $status = $request->input('status', 'all'); // Filter tab status
+        $perPage = $request->input('perPage', 10); // Default 10 data per halaman
+
+        // Bersihkan URL jika status bernilai 'all' agar URL lebih rapi dan konsisten
+        if ($request->has('status') && $status === 'all') {
+            $queryParams = $request->except('status');
+            return redirect()->route('loans.index', $queryParams);
+        }
 
         if ($user->role === 'admin') {
-            $loans = Loan::with(['user', 'item', 'returnLog'])->latest()->paginate(10);
-            return view('admin.loans.index', compact('loans'));
+            $query = Loan::with(['user', 'item', 'returnLog'])
+                ->when($status !== 'all', function ($q) use ($status) {
+                    if ($status === 'terlambat') {
+                        return $q->where('status', 'dipinjam')->where('due_date', '<', Carbon::today());
+                    }
+                    return $q->where('status', $status);
+                })
+                ->when($search, function ($q, $search) {
+                    $q->whereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%");
+                    })->orWhereHas('item', function ($itemQuery) use ($search) {
+                        $itemQuery->where('name', 'like', "%{$search}%");
+                    });
+                })
+                ->latest();
+
+            if ($perPage === 'all') {
+                $loans = $query->paginate($query->count() ?: 1)->withQueryString();
+            } else {
+                $loans = $query->paginate((int) $perPage)->withQueryString();
+            }
+
+            return view('admin.loans.index', compact('loans', 'search', 'status', 'perPage'));
         } else {
-            $loans = Loan::with(['item', 'returnLog'])->where('user_id', $user->id)->latest()->paginate(10);
-            return view('user.loans.index', compact('loans'));
+            $query = Loan::with(['item', 'returnLog'])
+                ->where('user_id', $user->id)
+                ->when($status !== 'all', function ($q) use ($status) {
+                    if ($status === 'terlambat') {
+                        return $q->where('status', 'dipinjam')->where('due_date', '<', Carbon::today());
+                    }
+                    return $q->where('status', $status);
+                })
+                ->when($search, function ($q, $search) {
+                    $q->whereHas('item', function ($itemQuery) use ($search) {
+                        $itemQuery->where('name', 'like', "%{$search}%");
+                    });
+                })
+                ->latest();
+
+            if ($perPage === 'all') {
+                $loans = $query->paginate($query->count() ?: 1)->withQueryString();
+            } else {
+                $loans = $query->paginate((int) $perPage)->withQueryString();
+            }
+
+            return view('user.loans.index', compact('loans', 'search', 'status', 'perPage'));
         }
     }
 
@@ -65,7 +115,7 @@ class LoanController extends Controller
         return redirect()->route('loans.index')->with('success', 'Pengajuan peminjaman berhasil dikirim.');
     }
 
-    // Admin menyetujui peminjaman (mengubah status jadi 'dipinjam' dan kurangi stok)
+    // Admin menyetujui peminjaman
     public function approve(Loan $loan)
     {
         $item = $loan->item;
@@ -74,9 +124,7 @@ class LoanController extends Controller
             return back()->with('error', 'Stok barang tidak mencukupi untuk disetujui.');
         }
 
-        // Kurangi stok barang
         $item->decrement('stock', $loan->quantity);
-
         $loan->update(['status' => 'dipinjam']);
 
         ActivityLog::create([
@@ -88,27 +136,43 @@ class LoanController extends Controller
         return redirect()->back()->with('success', 'Peminjaman disetujui dan stok barang diperbarui.');
     }
 
+    // Admin menolak peminjaman dengan alasan dari modal pop-up
+    public function reject(Request $request, Loan $loan)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:255',
+        ]);
+
+        // Menyimpan status ditolak beserta alasan ke kolom rejection_reason
+        $loan->update([
+            'status' => 'ditolak',
+            'rejection_reason' => $request->reason,
+        ]);
+
+        ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'reject_loan',
+            'description' => 'Admin menolak peminjaman untuk ' . ($loan->user->name ?? 'User') . '. Alasan: ' . $request->reason,
+        ]);
+
+        return redirect()->back()->with('success', 'Pengajuan peminjaman berhasil ditolak.');
+    }
+
     // Memproses pengembalian barang
     public function returnItem(Request $request, Loan $loan)
     {
-        $request->validate([
-            'condition_on_return' => 'required|in:baik,rusak ringan,rusak berat',
-            'notes' => 'nullable|string',
-        ]);
-
-        // Catat log pengembalian
         ReturnLog::create([
             'loan_id' => $loan->id,
             'returned_at' => Carbon::now(),
-            'condition_on_return' => $request->condition_on_return,
-            'notes' => $request->notes,
+            'condition_on_return' => $request->input('condition_on_return', 'baik'),
+            'notes' => $request->input('notes', 'Dikembalikan oleh user via sistem'),
         ]);
 
-        // Update status peminjaman menjadi dikembalikan
         $loan->update(['status' => 'dikembalikan']);
-
-        // Kembalikan stok barang
-        $loan->item->increment('stock', $loan->quantity);
+        
+        if ($loan->item) {
+            $loan->item->increment('stock', $loan->quantity);
+        }
 
         ActivityLog::create([
             'user_id' => auth()->id(),
@@ -117,5 +181,34 @@ class LoanController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Barang berhasil dikembalikan dan stok diperbarui.');
+    }
+
+    // ==========================================
+    // TAMBAHAN FITUR NILAI TAMBAH: EXPORT PDF
+    // ==========================================
+    public function exportPdf(Request $request)
+    {
+        $status = $request->input('status', 'all');
+        $search = $request->input('search');
+
+        $query = Loan::with(['user', 'item', 'returnLog'])
+            ->when($status !== 'all', function ($q) use ($status) {
+                if ($status === 'terlambat') {
+                    return $q->where('status', 'dipinjam')->where('due_date', '<', Carbon::today());
+                }
+                return $q->where('status', $status);
+            })
+            ->when($search, function ($q, $search) {
+                $q->whereHas('user', function ($userQuery) use ($search) {
+                    $userQuery->where('name', 'like', "%{$search}%");
+                })->orWhereHas('item', function ($itemQuery) use ($search) {
+                    $itemQuery->where('name', 'like', "%{$search}%");
+                });
+            })
+            ->latest();
+
+        $loans = $query->get();
+
+        return view('admin.loans.pdf', compact('loans', 'status'));
     }
 }

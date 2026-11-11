@@ -4,24 +4,60 @@ namespace App\Http\Controllers;
 
 use App\Models\Item;
 use App\Models\Category;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 
 class ItemController extends Controller
 {
-    // Menampilkan daftar barang dengan search & pagination
+    // Menampilkan daftar barang khusus untuk User/Siswa
+    public function userIndex(Request $request)
+    {
+        $search = $request->input('search');
+        $perPage = $request->input('perPage', 10); // Default 10 data per halaman
+
+        $query = Item::with('category')
+            ->when($search, function ($q, $search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('code', 'like', "%{$search}%")
+                  ->orWhereHas('category', function ($catQuery) use ($search) {
+                      $catQuery->where('name', 'like', "%{$search}%");
+                  });
+            })
+            ->latest();
+
+        if ($perPage === 'all') {
+            $items = $query->paginate($query->count() ?: 1)->withQueryString();
+        } else {
+            $items = $query->paginate((int) $perPage)->withQueryString();
+        }
+
+        return view('user.items.index', compact('items', 'search', 'perPage'));
+    }
+
+    // Menampilkan daftar barang dengan search, perPage filter, & pagination (Admin)
     public function index(Request $request)
     {
         $search = $request->input('search');
-        
-        $items = Item::with('category')
+        $perPage = $request->input('perPage', 10); // Default 10 data per halaman
+
+        $query = Item::with('category')
             ->when($search, function ($query, $search) {
                 return $query->where('name', 'like', "%{$search}%")
                              ->orWhere('code', 'like', "%{$search}%");
             })
-            ->latest()
-            ->paginate(10);
+            ->latest();
 
-        return view('admin.items.index', compact('items', 'search'));
+        // Logika menangani pilihan filter perPage (termasuk opsi 'all')
+        if ($perPage === 'all') {
+            $items = $query->paginate($query->count() ?: 1)->withQueryString();
+        } else {
+            $items = $query->paginate((int) $perPage)->withQueryString();
+        }
+
+        // Ambil semua data kategori agar dropdown pada modal tambah/edit barang muncul
+        $categories = Category::all();
+
+        return view('admin.items.index', compact('items', 'search', 'perPage', 'categories'));
     }
 
     // Menampilkan form tambah barang
@@ -42,7 +78,14 @@ class ItemController extends Controller
             'condition' => 'required|in:baik,rusak ringan,rusak berat',
         ]);
 
-        Item::create($request->all());
+        $item = Item::create($request->all());
+
+        // Catat aktivitas tambah barang ke Activity Log
+        ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'create_item',
+            'description' => 'Menambahkan barang ' . $item->name,
+        ]);
 
         return redirect()->route('admin.items.index')->with('success', 'Data barang berhasil ditambahkan.');
     }
@@ -67,13 +110,29 @@ class ItemController extends Controller
 
         $item->update($request->all());
 
+        // Catat aktivitas update barang ke Activity Log
+        ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'update_item',
+            'description' => 'Memperbarui data barang ' . $item->name,
+        ]);
+
         return redirect()->route('admin.items.index')->with('success', 'Data barang berhasil diperbarui.');
     }
 
     // Menghapus barang (Soft Delete)
     public function destroy(Item $item)
     {
+        $itemName = $item->name;
         $item->delete();
+
+        // Catat aktivitas hapus barang ke Activity Log
+        ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'delete_item',
+            'description' => 'Menghapus barang ' . $itemName,
+        ]);
+
         return redirect()->route('admin.items.index')->with('success', 'Data barang berhasil dihapus.');
     }
 }
